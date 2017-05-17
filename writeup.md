@@ -19,13 +19,13 @@ The goals / steps of this project are the following:
 [notcar]: ./output_images/notcar.png
 [car_YCrCb]: ./output_images/car_YCrCb.png
 [hog]: ./examples/hog.png
+[sliding_windows]: ./output_images/sliding_windows.jpg
+[hot_windows]: ./output_images/hot_windows.jpg
+[heat_map]: ./output_images/heat_map.png
+[car_positions]: ./output_images/car_positions.png
+[project_video]: ./project_video.mp4
+[tracking_video]: ./tracking.mp4
 
-[image3]: ./examples/sliding_windows.jpg
-[image4]: ./examples/sliding_window.jpg
-[image5]: ./examples/bboxes_and_heat.png
-[image6]: ./examples/labels_map.png
-[image7]: ./examples/output_bboxes.png
-[video1]: ./project_video.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  

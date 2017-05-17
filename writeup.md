@@ -18,7 +18,8 @@ The goals / steps of this project are the following:
 [car]: ./output_images/car.png
 [notcar]: ./output_images/notcar.png
 [car_YCrCb]: ./output_images/car_YCrCb.png
-[image2]: ./examples/HOG_example.jpg
+[hog]: ./examples/hog.png
+
 [image3]: ./examples/sliding_windows.jpg
 [image4]: ./examples/sliding_window.jpg
 [image5]: ./examples/bboxes_and_heat.png

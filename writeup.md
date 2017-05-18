@@ -48,7 +48,14 @@ I started by reading in all the `vehicle` and `non-vehicle` images (code cell #2
 ![car][car]
 ![notcar][notcar]
 
-I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
+The HOG wrapper around `skimage.hog()` can be found in cell #3 of the IPython notebook. Among other things, it lets us handle returning both the feature vector and the 2D image representation of the HOG features, as well as the typical case where the number of pixels per cell and cells per block are provided symmetrically in the `x` and `y` dimensions.
+
+Since I determined through earlier experiments that other features such as spatial binning and color histograms would be helpful as features as well, I implemented them in cells #4 (spatial binning) and #5 (color histogram). The spatial binning wrapper just calls resize, but we need to flatten the feature vector, so it's better to abstract it away. The histogram wrapper takes care of the fact that each channel needs to be processed separately, and the feature vector needs to be flat again, so the concatenated results are returned.
+
+The featurization function that calls the above convenience wrappers is implemented in cell #6 of the IPython notebook.
+
+
+I then explored different color spaces and different HOG `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
 
 Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
 

@@ -56,16 +56,21 @@ The featurization function that calls the above convenience wrappers is implemen
 
 In cell #7, we finally make use of all of the previously mentioned infrastructure. We take the car and non-car file names and generate the features. Note that at this point we need to select the color space, spatial size, etc. These selections were made during a very long tuning process. Interestingly, I chose other selections earlier that improved the validation accuracy of the SVM, but ended up doing more poorly together with the post-processing of classification, such as the heat map-based selection of final bounding boxes. So, I went through many cycles of feature engineering, SVM hyperparameter tuning (e.g. the regularization parameter), and postprocessing parameter tuning. Therefore, it would be hard to pinpoint exactly why I ended up choosing the parameters that I am about to mention here, since they were selected based on the final feedback on the test video, as opposed to merely on the validation accuracy of the SVM.
 
-color_space = 'YCrCb' 
-spatial_size = (16, 16)
-orient = 11
-pix_per_cell = 16
-cell_per_block = 2
-hog_channel = 'ALL' 
-hist_bins = 64
-spatial_feat=True
-hist_feat=True
-hog_feat=True
+| Parameter  | Value  |
+|---|---|
+| color space  | YCrCb   |
+| spatial size  | (16, 16)   |
+| orient  | 11   |
+| pixels per cell  | 16   |
+| cells per block  | 2   |
+| HOG channels  | 'ALL' (i.e. 3)   |
+| histogram bins  | 64   |
+| orient  | 11   |
+| spatial features  | true   |
+| histogram features  | true   |
+| HOG features  | true   |
+
+
 
 I then explored different color spaces and different HOG `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
 

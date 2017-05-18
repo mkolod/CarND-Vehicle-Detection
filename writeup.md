@@ -18,9 +18,9 @@ The goals / steps of this project are the following:
 [car]: ./output_images/car.png
 [notcar]: ./output_images/notcar.png
 [car_YCrCb]: ./output_images/car_YCrCb.png
-[hog]: ./examples/hog.png
-[sliding_windows]: ./output_images/sliding_windows.jpg
-[hot_windows]: ./output_images/hot_windows.jpg
+[hog]: ./output_images/hog.png
+[sliding_windows]: ./output_images/sliding_windows.png
+[hot_windows]: ./output_images/hot_windows.png
 [heat_map]: ./output_images/heat_map.png
 [car_positions]: ./output_images/car_positions.png
 [project_video]: ./project_video.mp4
@@ -54,7 +54,21 @@ Since I determined through earlier experiments that other features such as spati
 
 The featurization function that calls the above convenience wrappers is implemented in cell #6 of the IPython notebook. We simply accept the image path along with parameters such as the chosen color space, the number of histogram bins, etc. The image that is loaded is first loaded as RGB, so if we chose a different color space, we need to change the representation. If spatial binning was chosen (boolean argument to the function), we compute the spatial binning using the previously mentioned convenience function. We do the same with color histograms, which we can coose to select or not. Finally, we run the HOG feature extraction. Once we generate all the features, they end up being concatenated and returned. Note that since they may be on different scales, we'll need to use feature scaling. I will discuss this later. 
 
-In cell #7, we finally make use of all of the previously mentioned infrastructure. We take the car and non-car file names and generate the features. Note that at this point we need to select the color space, spatial size, etc. These selections were made during a very long tuning process. Interestingly, I chose other selections earlier that improved the validation accuracy of the SVM, but ended up doing more poorly together with the post-processing of classification, such as the heat map-based selection of final bounding boxes. So, I went through many cycles of feature engineering, SVM hyperparameter tuning (e.g. the regularization parameter), and postprocessing parameter tuning. Therefore, it would be hard to pinpoint exactly why I ended up choosing the parameters that I am about to mention here, since they were selected based on the final feedback on the test video, as opposed to merely on the validation accuracy of the SVM.
+Here is an example of one of the above car image from the SVM training set being transformed into a HOG representation.
+
+![hog][hog]
+
+The transition from RGB to YCrCb, which is the color space I ultimately used, decidedly makes the images look odd to a human, but this color space is typically not for display purposes. It was originally conceived to allow for better representation of luminance (Y), so that it could be given more bandwidth than the chroma red-different (Cr) and chroma blue difference (Cb). However, it's also a useful transformation for machine learning, because we can focus on luminance, which is typically good enough for us to discern shapes, and the color information is treated separately.
+
+![car_YCrCb][car_YCrCb]
+
+#### 2. Explain how you settled on your final choice of HOG parameters.
+
+In cell #7, we finally make use of all of the previously mentioned infrastructure. We take the car and non-car file names and generate the features. Note that at this point we need to select the color space, spatial size, etc. These selections were made during a very long tuning process. Interestingly, I chose other selections earlier that improved the validation accuracy of the SVM, but ended up doing more poorly together with the post-processing of classification, such as the heat map-based selection of final bounding boxes. So, I went through many cycles of feature engineering, SVM hyperparameter tuning (e.g. the regularization parameter), and postprocessing parameter tuning. Therefore, it would be hard to pinpoint exactly why I ended up choosing the parameters that I am about to mention here, since they were selected based on the final feedback on the test video, as opposed to merely on the validation accuracy of the SVM. 
+
+That said, we can have some basic intuitions as to why the YCrCb color space was more useful than RGB, for example - luminance (Y) differences are more critical for object identification than the actual color (we could make a similar argument about the L channel in HSL, or V in HSV). Also, for both "color" channel binning and HOG features, it's good to separate some sense of color (Cr and Cb in YCrCb, or H in HSV/HSL) from other visual aspects (saturation in HSV, luminance in YCrCb). This separation is intuitively more useful than raw RGB intensities.
+
+We can make similar arguments about keeping the number of pixels per cell fairly small (16) for the HOG computation, but using blocking (2 cells per block) to smooth out the histograms. I didn't think that HOG features could benefit from all three YCrCb channels, my hypothesis was that only using the Y channel would be adequate, but both the SVM validation accuracy and the postprocessed results visible in the video ended up being better with all three channels going into the HOG feature calculation.
 
 | Parameter  | Value  |
 |---|---|
@@ -63,37 +77,42 @@ In cell #7, we finally make use of all of the previously mentioned infrastructur
 | orient  | 11   |
 | pixels per cell  | 16   |
 | cells per block  | 2   |
-| HOG channels  | 'ALL' (i.e. 3)   |
+| HOG channels  | ALL (i.e. 3)   |
 | histogram bins  | 64   |
 | orient  | 11   |
 | spatial features  | true   |
 | histogram features  | true   |
 | HOG features  | true   |
 
-
-
-I then explored different color spaces and different HOG `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
-
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
-
-
-![alt text][image2]
-
-#### 2. Explain how you settled on your final choice of HOG parameters.
-
-I tried various combinations of parameters and...
-
 #### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
-I trained a linear SVM using...
+Before training the SVM, I scaled the features in cell #8 of the IPython notebook. Unscaled features cause disparities in feature importance, so it's critical to bring all features into the same range. It's also critical that we split the data into the training and validation sets, since the training set accuracy is almost always overly optimistic about the predictive ability of the model - we can easily overfit the training data and fail to generalize on new data, but it's the prediction on new data that's our ultimate goal. Frankly, even validation set accuracy is often higher than test set accuracy, because we keep changing the model (e.g. linear vs. RBF kernel SVM), the features, etc. to improve validation accuracy, so the model indirectly "sees" the validation data because it keeps being tuned to validation data. Still, using validation data, even without test data at first, is a good start, be it for manual model tuning, or hyperparameter sweeps (e.g. using an automated grid search or random search to find the best regularization parameter).
+
+I actually tried the RBF kernel SVM in addition to the linear SVM, and it produced a model that was about 1 percentage point more accurate on the validation set, however it took much longer to train, the inference was much slower, and given all the other "knobs" such as the sliding window settings for postprocessing, using the RBF kernel resulted in worse final bounding boxes, so I kept the linear SVM. However, even for the linear SVM, there were some things to tune, especially the regularization parameter.
+
+In cell #9 of the IPython notebook, we can see that I selected a linear SVM with an L2 regularization penalty and a regularization parameter (C) value of 0.001. I also chose the squared hinge loss. I tried L1 penalty instead of L2 as well, which is a common way to make the model more sparse by forcing some parameter values to zero. This tends to help when we have too many features, however here the L1 penalty did worse tan L2. The best validation accuracy that I obtained, given the features that I chose (and the parameters used to produce them) and the choice of the linear SVM, was 0.989.
+
 
 ### Sliding Window Search
 
 #### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
+Sliding window search can be broken up into several problems. First, we need to decide what x and y ranges do we want to search. In addition to efficiency considerations (the smaller the regions, the more images we'll be able to process per second), we don't want to search certain parts of the image, in order to avoid false positives. For example, searching the sky above the road won't give any tracking benefits, and if anything, will generate false positives. Once we have our x and y ranges to search over, and once we decide what the window overlap should be (e.g. are they mutually exclusive, non-overlapping windows, or is there an overlap of say 50% between neigboring windows of the same size), we can run the slide_window() function in cell #10 of the IPython notebook. This function will simply provide the window boundaries, generated based on the above mentioned regions and overlap selections.
 
-![alt text][image3]
+![sliding_windows][sliding_windows]
+
+Once we have the sliding windows, we need to take the crops which given windows cover, feed them into the SVM, and see which ones qualified as positive classifications (i.e. that this window was recognized as having a car in it). This is done by the search_windows() function in cell #13 of the IPython notebook. That function extracts the feature for a given window (call to single_img_features() function in cell #11), scales the features, and applies the classifier. Only when a prediction is positive (an expectation that it is a car) do we add this window to the list of windows that contain likely detections. Notice how there are way fewer "hot" windows in the image below than there are of all windows in the image above.
+
+![hot_windows][hot_windows]
+
+Since the "hot" windows will cover the same area at different scales, or will cover neighboring parts of a given car, we need to merge bounding boxes that touch or overlap each other. To do this, we first look at the heat map that covers the number of times a given pixel was recognized as belonging to a car
+
+![heat_map][heat_map]
+
+The heat map above is generated in cell #14. Once we have the heat map, we can check if the number of overlapping or multi-scale occurrences passed the threshold desired to reduce the probability of false positives (code cell #15). Also, the heat map will delineate the boundaries of the union of the overlapping window boundaries. 
+
+The pipeline is wrapped in the Pipeline class, the `__call__()` method of which is used to process individual video frames. Instead of having just a function, we need a class or a generator to keep track of the state, because one of the ways to fix the false positive problem is to keep track of detected windows in adjacent frames, and to filter out detections that don't overlap with other detections in the N (e.g. 15) adjacent frames. We could do it using a global variable, but that's not a good programming practice. Also, a generator would probably be suboptimal here. It's easier to create multiple instances of the same class, which keeps track of the state, e.g. if we need multiple instances for testing. The Pipeline class keeps the bounding box history in a field called `box_history`.  This is a moving window of N (e.g. 15) frames - once we saturate the "history," adding a new video frame causes the oldest video frame's bounding boxes to be removed. The Pipeline class's `__call__` method applies the previously mentioned pipeline, calling `search_windows()`, `add_heat()` and so on, and producing the final image annotated with the predicted vehicle bounding boxes.
+
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 

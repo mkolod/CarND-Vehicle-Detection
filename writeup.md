@@ -26,6 +26,16 @@ The goals / steps of this project are the following:
 [project_video]: ./project_video.mp4
 [tracking_video]: ./tracking.mp4
 
+[frame1_bb]: ./output_images/frame1_bb.png
+[frame1_heat]: ./output_images/frame1_heat.png
+[frame1_final]: ./output_images/frame1_final.png
+[frame2_bb]: ./output_images/frame2_bb.png
+[frame2_heat]: ./output_images/frame2_heat.png
+[frame2_final]: ./output_images/frame2_final.png
+[frame3_bb]: ./output_images/frame2_bb.png
+[frame3_heat]: ./output_images/frame3_heat.png
+[frame3_final]: ./output_images/frame3_final.png
+
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
@@ -116,16 +126,39 @@ The pipeline is wrapped in the Pipeline class, the `__call__()` method of which 
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
-Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
+Here are a few frames from the test video that show the bounding boxes that were classified as positive, along with the heat maps, and the final merged bounding boxes. These are from the test video, which only lasts a few seconds, so I apologize in advance for the difference between these images not being as big as in the full project video. You can see the final detections in the project video mp4, and they are clearly OK, but here are some intermediate illustrations to confirm how well the individual frames do.
 
-![alt text][image4]
+Frame 1
+
+![frame1_bb][frame1_bb]
+
+![frame1_heat][frame1_heat]
+
+![frame1_final][frame1_final]
+
+
+Frame 2
+
+![frame2_bb][frame2_bb]
+
+![frame2_heat][frame2_heat]
+
+![frame2_final][frame2_final]
+
+Frame 3
+
+![frame3_bb][frame3_bb]
+
+![frame3_heat][frame3_heat]
+
+![frame3_final][frame3_final]
+
 ---
 
 ### Video Implementation
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
-Here's a [link to my video result](./project_video.mp4)
-
+Here's a [link to my video result](./tracking.mp4). I also put the video on [YouTube](https://www.youtube.com/watch?v=5aYzIyxP8GQ).
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
@@ -145,11 +178,8 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 
 
----
-
 ### Discussion
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
-
+The biggest problem, as is typical in machine learning, was feature engineering and hyperparameter tuning. Since this is a simple classifier (a linear SVM), I only needed to tune the regularization parameter, and this could be automated using scikit-learn's grid search or random search. On the other hand, feature engineering had to be largely done by hand, because it impacted not only the classifier accuracy but had consequences for multi-scale sliding window search, which could be negatively affected even if the SVM did well on the "well-behaved" training set. Also, even if we could automate the feature engineering by doing a huge sweep over all the tuning parameters (e.g. for HOG features, which color space to choose, etc.), the post-processing once the classifier was trained had to be done manually by inspecting the video. I believe the model is quite robust, however this is only based on this particular video and a small training set. The validation accuracy of the SVM was high, but the model might not do so well under different lighting conditions, etc. We would need a much bigger training set for the classifier, and for tuning the hyperparameters, to have more confidence for very different road surfaces, car sizes (we only had sedans in this video), roads that have an incline, etc.

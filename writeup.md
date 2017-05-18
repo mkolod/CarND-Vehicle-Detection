@@ -162,20 +162,9 @@ Here's a [link to my video result](./tracking.mp4). I also put the video on [You
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
+The first step in filtering out the false positives was to keep track of bounding boxes from multiple consecutive frames. After some tuning, I chose that to be 15 frames. Since I didn't want to have bad detections for the first 15 frames of the video, I only started detection once the "buffer" filled up. Since consecutive frames are spatially correlated, i.e. the detected objects would have very similar `(x,y)` coordinates (especially at high frame rates, e.g. 30 fps), we can take bounding boxes from several neighboring frames, threshold how many boxes we need that have any overlap before considering that a "true" positive, and after filtering out cases that don't have enough overlap (likely false positives), we can combine the boxes. This is why I needed the Pipeline class, which keeps track of a rolling window of detected bounding boxes from the last N (e.g. 15) frames.
 
-Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
-
-### Here are six frames and their corresponding heatmaps:
-
-![alt text][image5]
-
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
-
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
-
+Once the boxes in multiple frames are detected, we can merge both overlapping bounding boxes frmo neighboring frames, and the overlapping bounding boxes from the spatial overlap of the moving window search from a single frame, using the `scipy.ndimage.measurements.label()` method. This was done by calling label() in the `__call__()` method of the `Pipeline` class, with the `label()` method applied to the heatmap generated from the bounding boxes.
 
 
 ### Discussion
